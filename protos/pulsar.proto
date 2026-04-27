@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package pulsar;
+
+// ---------------------------------------------------------
+// 1. Client <-> Broker Service
+// ---------------------------------------------------------
+service ClientBrokerService {
+    // Producer publishes a message to a topic
+    rpc Publish (PublishRequest) returns (PublishResponse);
+    
+    // Consumer subscribes to a topic and receives a stream of messages
+    rpc Subscribe (SubscribeRequest) returns (stream MessageDelivery);
+    
+    // Consumer acknowledges receipt of a message (for durable cursors)
+    rpc Acknowledge (AckRequest) returns (AckResponse);
+}
+
+message PublishRequest {
+    string topic = 1;
+    bytes payload = 2;
+}
+
+message PublishResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message SubscribeRequest {
+    string topic = 1;
+    string consumer_id = 2;
+}
+
+message MessageDelivery {
+    string message_id = 1;
+    bytes payload = 2;
+}
+
+message AckRequest {
+    string topic = 1;
+    string consumer_id = 2;
+    string message_id = 3;
+}
+
+message AckResponse {
+    bool success = 1;
+}
+
+// ---------------------------------------------------------
+// 2. Broker <-> Storage Service
+// ---------------------------------------------------------
+service BrokerStorageService {
+    // Broker appends a message to the storage log
+    rpc AppendMessage (AppendRequest) returns (AppendResponse);
+    
+    // Broker reads messages from the storage log (e.g., for catching up a consumer)
+    rpc ReadMessages (ReadRequest) returns (ReadResponse);
+
+    // Broker updates the consumer cursor in storage
+    rpc UpdateCursor (UpdateCursorRequest) returns (UpdateCursorResponse);
+}
+
+message AppendRequest {
+    string topic = 1;
+    bytes payload = 2;
+}
+
+message AppendResponse {
+    bool success = 1;
+    string message_id = 2; // Returns the generated offset/ID
+}
+
+message ReadRequest {
+    string topic = 1;
+    string start_message_id = 2; // Offset to start reading from
+    int32 max_messages = 3;
+}
+
+message ReadResponse {
+    repeated MessageDelivery messages = 1;
+}
+
+message UpdateCursorRequest {
+    string topic = 1;
+    string consumer_id = 2;
+    string message_id = 3; // The latest acknowledged message offset
+}
+
+message UpdateCursorResponse {
+    bool success = 1;
+}
+
+// ---------------------------------------------------------
+// 3. Broker/Client <-> Coordinator Service
+// ---------------------------------------------------------
+service CoordinatorService {
+    // Clients/Brokers ask the coordinator which broker handles a topic
+    rpc DiscoverTopic (DiscoverRequest) returns (DiscoverResponse);
+    
+    // Brokers send heartbeats to the coordinator
+    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+message DiscoverRequest {
+    string topic = 1;
+}
+
+message DiscoverResponse {
+    string broker_address = 1; // e.g., "localhost:50051"
+}
+
+message HeartbeatRequest {
+    string broker_id = 1;
+    string address = 2;
+    int32 load = 3; // Number of topics currently handled
+}
+
+message HeartbeatResponse {
+    bool success = 1;
+}
+
+// ---------------------------------------------------------
+// 4. Coordinator Consensus Service (Phase King)
+// ---------------------------------------------------------
+service ConsensusService {
+    // Used between Coordinator nodes for Phase King rounds
+    rpc ProposeValue (ProposeRequest) returns (ProposeResponse);
+}
+
+message ProposeRequest {
+    int32 round = 1;
+    int32 phase = 2;
+    string proposed_state = 3; // Serialized state or specific value
+    string sender_id = 4;
+}
+
+message ProposeResponse {
+    bool success = 1;
+}
