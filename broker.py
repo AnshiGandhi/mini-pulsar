@@ -8,19 +8,22 @@ import grpc
 
 from protos import pulsar_pb2
 from protos import pulsar_pb2_grpc
-
-
+from coordinator_client import CoordinatorClient
 from utils import DEFAULT_PARTITIONS, log_error, log_event, log_success, log_io
 
 
 class Broker(pulsar_pb2_grpc.BrokerServiceServicer):
+    """
+    Broker handles client publish and subscribe requests
+    It routes publish payload to the assigned storage node and manages partitions
+    """
     def __init__(self, broker_id, listen_addr, coordinator_stub=None):
         self._broker_id = broker_id
         self._listen_addr = listen_addr
         self._routes = {}
         self._storage_stubs = {}
         self._default_partitions = DEFAULT_PARTITIONS
-        self._coordinator_stub = coordinator_stub
+        self._coordinator_client = coordinator_stub
 
     def Publish(self, request, context):
         topic = request.topic
@@ -54,9 +57,6 @@ class Broker(pulsar_pb2_grpc.BrokerServiceServicer):
 
         log_success(f"Publish ok topic={topic} partition={partition} offset={append_resp.offset}")
         return pulsar_pb2.PublishResponse(status=pulsar_pb2.STATUS_OK, partition=partition, offset=append_resp.offset)
-
-    def ReadMessage(self, request, context):
-        context.abort(grpc.StatusCode.UNIMPLEMENTED, "ReadMessage removed; use Subscribe")
 
     def AssignPartition(self, request, context):
         if request.routes:
@@ -153,12 +153,12 @@ class Broker(pulsar_pb2_grpc.BrokerServiceServicer):
         return self._storage_stubs[address]
 
     def _refresh_routes(self):
-        if not self._coordinator_stub:
+        """Refreshes the partition routing table from the coordinator"""
+        if not self._coordinator_client:
             return False
-        try:
-            response = self._coordinator_stub.GetRoutingTable(pulsar_pb2.GetRoutingTableRequest())
-        except grpc.RpcError as exc:
-            log_error(f"Routing refresh failed {exc.details()}")
+        response = self._coordinator_client.call("GetRoutingTable", pulsar_pb2.GetRoutingTableRequest())
+        if response is None:
+            log_error("Routing refresh failed")
             return False
 
         if not response.routes:
@@ -170,6 +170,7 @@ class Broker(pulsar_pb2_grpc.BrokerServiceServicer):
         return True
 
     def _select_partition(self, topic, key, payload):
+        """Hashes the key or payload to select a deterministic partition"""
         key_bytes = key.encode("utf-8") if key else payload
         digest = hashlib.sha256(key_bytes).hexdigest()
         return int(digest, 16) % self._default_partitions
@@ -187,18 +188,17 @@ class Broker(pulsar_pb2_grpc.BrokerServiceServicer):
         return None
 
 
-def register_with_coordinator(coordinator_addr, listen_addr, node_id):
-    channel = grpc.insecure_channel(coordinator_addr)
-    stub = pulsar_pb2_grpc.CoordinatorServiceStub(channel)
-    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_BROKER, node_id=node_id, address=listen_addr))
-    return stub, response.node_id
+def register_with_coordinator(client, listen_addr, node_id):
+    response = client.call("Register", pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_BROKER, node_id=node_id, address=listen_addr))
+    if response:
+        return client, response.node_id
+    return None, node_id
 
 
-def heartbeat_loop(stub, node_id, listen_addr, interval, stop_event):
+def heartbeat_loop(client, node_id, listen_addr, interval, stop_event):
     while not stop_event.is_set():
-        try:
-            stub.Heartbeat(pulsar_pb2.HeartbeatRequest(broker_id=node_id, address=listen_addr))
-        except grpc.RpcError:
+        response = client.call("Heartbeat", pulsar_pb2.HeartbeatRequest(broker_id=node_id, address=listen_addr))
+        if not response:
             log_error("Heartbeat failed")
         stop_event.wait(interval)
 
@@ -206,21 +206,22 @@ def heartbeat_loop(stub, node_id, listen_addr, interval, stop_event):
 def serve(args):
     listen_addr = f"{args.host}:{args.port}"
     broker_id = args.id
-    stub = None
+    client = None
     stop_event = threading.Event()
-    if args.coordinator:
-        stub, broker_id = register_with_coordinator(args.coordinator, listen_addr, broker_id)
+    if args.coordinators_file:
+        client = CoordinatorClient(args.coordinators_file)
+        client, broker_id = register_with_coordinator(client, listen_addr, broker_id)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))
-    broker = Broker(broker_id, listen_addr, coordinator_stub=stub)
+    broker = Broker(broker_id, listen_addr, coordinator_stub=client)
     pulsar_pb2_grpc.add_BrokerServiceServicer_to_server(broker, server)
 
     server.add_insecure_port(listen_addr)
 
-    if args.coordinator and stub:
-        thread = threading.Thread(target=heartbeat_loop, args=(stub, broker_id, listen_addr, 5, stop_event), daemon=True)
+    if args.coordinators_file and client:
+        thread = threading.Thread(target=heartbeat_loop, args=(client, broker_id, listen_addr, 5, stop_event), daemon=True)
         thread.start()
-        log_success(f"Registered broker_id={broker_id} coordinator={args.coordinator}")
+        log_success(f"Registered broker_id={broker_id}")
 
     server.start()
     log_success(f"Broker listening on {listen_addr}")
@@ -237,7 +238,7 @@ def main():
     parser = argparse.ArgumentParser(description="Mini-Pulsar broker")
     parser.add_argument("--host", default="127.0.0.1", help="Bind host")
     parser.add_argument("--port", type=int, required=True, help="Bind port")
-    parser.add_argument("--coordinator", required=True, help="Coordinator address host:port")
+    parser.add_argument("--coordinators-file", required=True, help="Coordinator addresses file")
     parser.add_argument("--id", required=True, help="Broker id")
     args = parser.parse_args()
 

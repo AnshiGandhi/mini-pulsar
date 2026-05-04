@@ -19,3 +19,11 @@ def log_io(message):
 
 def log_success(message):
     print(f"{COLOR_GREEN}{message}{COLOR_RESET}")
+
+def read_coordinators(file_path):
+    """Reads a list of coordinator addresses from a file, returning a list of strings"""
+    import os
+    if not os.path.exists(file_path):
+        return []
+    with open(file_path, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]

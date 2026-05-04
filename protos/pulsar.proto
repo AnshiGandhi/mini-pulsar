@@ -60,6 +60,8 @@ service CoordinatorService {
 	rpc SubscribeMessage(SubscribeMessageRequest) returns (SubscribeMessageResponse);
 	rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
 	rpc GetRoutingTable(GetRoutingTableRequest) returns (GetRoutingTableResponse);
+	rpc RequestVote(RequestVoteRequest) returns (RequestVoteResponse);
+	rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
 }
 
 message RegisterRequest {
@@ -115,6 +117,27 @@ message GetRoutingTableRequest {}
 
 message GetRoutingTableResponse {
 	repeated PartitionRoute routes = 1;
+}
+
+message RequestVoteRequest {
+	uint64 term = 1;
+	string candidate_id = 2;
+}
+
+message RequestVoteResponse {
+	uint64 term = 1;
+	bool vote_granted = 2;
+}
+
+message AppendEntriesRequest {
+	uint64 term = 1;
+	string leader_id = 2;
+	string state_json = 3;
+}
+
+message AppendEntriesResponse {
+	uint64 term = 1;
+	bool success = 2;
 }
 
 // Broker service

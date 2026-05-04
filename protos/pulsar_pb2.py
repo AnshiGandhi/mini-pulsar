@@ -24,17 +24,17 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13protos/pulsar.proto\x12\nminipulsar\"0\n\nBrokerInfo\x12\x11\n\tbroker_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"2\n\x0bStorageInfo\x12\x12\n\nstorage_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"\x84\x01\n\x0ePartitionRoute\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12&\n\x06\x62roker\x18\x03 \x01(\x0b\x32\x16.minipulsar.BrokerInfo\x12(\n\x07storage\x18\x04 \x01(\x0b\x32\x17.minipulsar.StorageInfo\"4\n\x0fPartitionOffset\x12\x11\n\tpartition\x18\x01 \x01(\r\x12\x0e\n\x06offset\x18\x02 \x01(\x04\"Y\n\x07Message\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12\x0e\n\x06offset\x18\x03 \x01(\x04\x12\x0b\n\x03key\x18\x04 \x01(\t\x12\x0f\n\x07payload\x18\x05 \x01(\x0c\"5\n\x0cMessageBatch\x12%\n\x08messages\x18\x01 \x03(\x0b\x32\x13.minipulsar.Message\"\\\n\x0fRegisterRequest\x12\'\n\tnode_type\x18\x01 \x01(\x0e\x32\x14.minipulsar.NodeType\x12\x0f\n\x07node_id\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\"@\n\x10RegisterResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x0f\n\x07node_id\x18\x03 \x01(\t\"6\n\x10HeartbeatRequest\x12\x11\n\tbroker_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"0\n\x11HeartbeatResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"(\n\x12\x43reateTopicRequest\x12\x12\n\ntopic_name\x18\x01 \x01(\t\"q\n\x13\x43reateTopicResponse\x12.\n\x0e\x64\x65\x66\x61ult_broker\x18\x01 \x01(\x0b\x32\x16.minipulsar.BrokerInfo\x12*\n\x06routes\x18\x02 \x03(\x0b\x32\x1a.minipulsar.PartitionRoute\"-\n\x17SubscribeMessageRequest\x12\x12\n\ntopic_name\x18\x01 \x01(\t\"\x81\x01\n\x18SubscribeMessageResponse\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.minipulsar.Status\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12*\n\x06routes\x18\x03 \x03(\x0b\x32\x1a.minipulsar.PartitionRoute\"\x13\n\x11ListTopicsRequest\"_\n\x12ListTopicsResponse\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.minipulsar.Status\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12\x0e\n\x06topics\x18\x03 \x03(\t\"\x18\n\x16GetRoutingTableRequest\"E\n\x17GetRoutingTableResponse\x12*\n\x06routes\x18\x01 \x03(\x0b\x32\x1a.minipulsar.PartitionRoute\"=\n\x0ePublishRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x0b\n\x03key\x18\x02 \x01(\t\x12\x0f\n\x07payload\x18\x03 \x01(\x0c\"\xa0\x01\n\x0fPublishResponse\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.minipulsar.Status\x12\x11\n\tpartition\x18\x02 \x01(\r\x12\x0e\n\x06offset\x18\x03 \x01(\x04\x12/\n\x0fredirect_broker\x18\x04 \x01(\x0b\x32\x16.minipulsar.BrokerInfo\x12\x15\n\rerror_message\x18\x05 \x01(\t\"\x90\x01\n\x16\x41ssignPartitionRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12(\n\x07storage\x18\x03 \x01(\x0b\x32\x17.minipulsar.StorageInfo\x12*\n\x06routes\x18\x04 \x03(\x0b\x32\x1a.minipulsar.PartitionRoute\"6\n\x17\x41ssignPartitionResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"j\n\x10SubscribeRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x13\n\x0b\x63onsumer_id\x18\x02 \x01(\t\x12\x32\n\rstart_offsets\x18\x03 \x03(\x0b\x32\x1b.minipulsar.PartitionOffset\"\xb9\x01\n\x11SubscribeResponse\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.minipulsar.Status\x12)\n\x05\x62\x61tch\x18\x02 \x01(\x0b\x32\x18.minipulsar.MessageBatchH\x00\x12\x31\n\x0fredirect_broker\x18\x03 \x01(\x0b\x32\x16.minipulsar.BrokerInfoH\x00\x12\x17\n\rerror_message\x18\x04 \x01(\tH\x00\x42\t\n\x07payload\"O\n\rAppendRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12\x0b\n\x03key\x18\x03 \x01(\t\x12\x0f\n\x07payload\x18\x04 \x01(\x0c\" \n\x0e\x41ppendResponse\x12\x0e\n\x06offset\x18\x01 \x01(\x04\"S\n\x0bReadRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12\x0e\n\x06offset\x18\x03 \x01(\x04\x12\x12\n\nbatch_size\x18\x04 \x01(\r\"J\n\x0cReadResponse\x12%\n\x08messages\x18\x01 \x03(\x0b\x32\x13.minipulsar.Message\x12\x13\n\x0bnext_offset\x18\x02 \x01(\x04*\x82\x01\n\x08NodeType\x12\x19\n\x15NODE_TYPE_UNSPECIFIED\x10\x00\x12\x14\n\x10NODE_TYPE_BROKER\x10\x01\x12\x15\n\x11NODE_TYPE_STORAGE\x10\x02\x12\x16\n\x12NODE_TYPE_PRODUCER\x10\x03\x12\x16\n\x12NODE_TYPE_CONSUMER\x10\x04*V\n\x06Status\x12\x16\n\x12STATUS_UNSPECIFIED\x10\x00\x12\r\n\tSTATUS_OK\x10\x01\x12\x13\n\x0fSTATUS_REDIRECT\x10\x02\x12\x10\n\x0cSTATUS_ERROR\x10\x03\x32\xfd\x03\n\x12\x43oordinatorService\x12\x45\n\x08Register\x12\x1b.minipulsar.RegisterRequest\x1a\x1c.minipulsar.RegisterResponse\x12H\n\tHeartbeat\x12\x1c.minipulsar.HeartbeatRequest\x1a\x1d.minipulsar.HeartbeatResponse\x12N\n\x0b\x43reateTopic\x12\x1e.minipulsar.CreateTopicRequest\x1a\x1f.minipulsar.CreateTopicResponse\x12]\n\x10SubscribeMessage\x12#.minipulsar.SubscribeMessageRequest\x1a$.minipulsar.SubscribeMessageResponse\x12K\n\nListTopics\x12\x1d.minipulsar.ListTopicsRequest\x1a\x1e.minipulsar.ListTopicsResponse\x12Z\n\x0fGetRoutingTable\x12\".minipulsar.GetRoutingTableRequest\x1a#.minipulsar.GetRoutingTableResponse2\xfb\x01\n\rBrokerService\x12\x42\n\x07Publish\x12\x1a.minipulsar.PublishRequest\x1a\x1b.minipulsar.PublishResponse\x12Z\n\x0f\x41ssignPartition\x12\".minipulsar.AssignPartitionRequest\x1a#.minipulsar.AssignPartitionResponse\x12J\n\tSubscribe\x12\x1c.minipulsar.SubscribeRequest\x1a\x1d.minipulsar.SubscribeResponse0\x01\x32\x8c\x01\n\x0eStorageService\x12?\n\x06\x41ppend\x12\x19.minipulsar.AppendRequest\x1a\x1a.minipulsar.AppendResponse\x12\x39\n\x04Read\x12\x17.minipulsar.ReadRequest\x1a\x18.minipulsar.ReadResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13protos/pulsar.proto\x12\nminipulsar\"0\n\nBrokerInfo\x12\x11\n\tbroker_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"2\n\x0bStorageInfo\x12\x12\n\nstorage_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"\x84\x01\n\x0ePartitionRoute\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12&\n\x06\x62roker\x18\x03 \x01(\x0b\x32\x16.minipulsar.BrokerInfo\x12(\n\x07storage\x18\x04 \x01(\x0b\x32\x17.minipulsar.StorageInfo\"4\n\x0fPartitionOffset\x12\x11\n\tpartition\x18\x01 \x01(\r\x12\x0e\n\x06offset\x18\x02 \x01(\x04\"Y\n\x07Message\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12\x0e\n\x06offset\x18\x03 \x01(\x04\x12\x0b\n\x03key\x18\x04 \x01(\t\x12\x0f\n\x07payload\x18\x05 \x01(\x0c\"5\n\x0cMessageBatch\x12%\n\x08messages\x18\x01 \x03(\x0b\x32\x13.minipulsar.Message\"\\\n\x0fRegisterRequest\x12\'\n\tnode_type\x18\x01 \x01(\x0e\x32\x14.minipulsar.NodeType\x12\x0f\n\x07node_id\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\"@\n\x10RegisterResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x0f\n\x07node_id\x18\x03 \x01(\t\"6\n\x10HeartbeatRequest\x12\x11\n\tbroker_id\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"0\n\x11HeartbeatResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"(\n\x12\x43reateTopicRequest\x12\x12\n\ntopic_name\x18\x01 \x01(\t\"q\n\x13\x43reateTopicResponse\x12.\n\x0e\x64\x65\x66\x61ult_broker\x18\x01 \x01(\x0b\x32\x16.minipulsar.BrokerInfo\x12*\n\x06routes\x18\x02 \x03(\x0b\x32\x1a.minipulsar.PartitionRoute\"-\n\x17SubscribeMessageRequest\x12\x12\n\ntopic_name\x18\x01 \x01(\t\"\x81\x01\n\x18SubscribeMessageResponse\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.minipulsar.Status\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12*\n\x06routes\x18\x03 \x03(\x0b\x32\x1a.minipulsar.PartitionRoute\"\x13\n\x11ListTopicsRequest\"_\n\x12ListTopicsResponse\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.minipulsar.Status\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12\x0e\n\x06topics\x18\x03 \x03(\t\"\x18\n\x16GetRoutingTableRequest\"E\n\x17GetRoutingTableResponse\x12*\n\x06routes\x18\x01 \x03(\x0b\x32\x1a.minipulsar.PartitionRoute\"8\n\x12RequestVoteRequest\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x14\n\x0c\x63\x61ndidate_id\x18\x02 \x01(\t\"9\n\x13RequestVoteResponse\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x14\n\x0cvote_granted\x18\x02 \x01(\x08\"K\n\x14\x41ppendEntriesRequest\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x11\n\tleader_id\x18\x02 \x01(\t\x12\x12\n\nstate_json\x18\x03 \x01(\t\"6\n\x15\x41ppendEntriesResponse\x12\x0c\n\x04term\x18\x01 \x01(\x04\x12\x0f\n\x07success\x18\x02 \x01(\x08\"=\n\x0ePublishRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x0b\n\x03key\x18\x02 \x01(\t\x12\x0f\n\x07payload\x18\x03 \x01(\x0c\"\xa0\x01\n\x0fPublishResponse\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.minipulsar.Status\x12\x11\n\tpartition\x18\x02 \x01(\r\x12\x0e\n\x06offset\x18\x03 \x01(\x04\x12/\n\x0fredirect_broker\x18\x04 \x01(\x0b\x32\x16.minipulsar.BrokerInfo\x12\x15\n\rerror_message\x18\x05 \x01(\t\"\x90\x01\n\x16\x41ssignPartitionRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12(\n\x07storage\x18\x03 \x01(\x0b\x32\x17.minipulsar.StorageInfo\x12*\n\x06routes\x18\x04 \x03(\x0b\x32\x1a.minipulsar.PartitionRoute\"6\n\x17\x41ssignPartitionResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"j\n\x10SubscribeRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x13\n\x0b\x63onsumer_id\x18\x02 \x01(\t\x12\x32\n\rstart_offsets\x18\x03 \x03(\x0b\x32\x1b.minipulsar.PartitionOffset\"\xb9\x01\n\x11SubscribeResponse\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.minipulsar.Status\x12)\n\x05\x62\x61tch\x18\x02 \x01(\x0b\x32\x18.minipulsar.MessageBatchH\x00\x12\x31\n\x0fredirect_broker\x18\x03 \x01(\x0b\x32\x16.minipulsar.BrokerInfoH\x00\x12\x17\n\rerror_message\x18\x04 \x01(\tH\x00\x42\t\n\x07payload\"O\n\rAppendRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12\x0b\n\x03key\x18\x03 \x01(\t\x12\x0f\n\x07payload\x18\x04 \x01(\x0c\" \n\x0e\x41ppendResponse\x12\x0e\n\x06offset\x18\x01 \x01(\x04\"S\n\x0bReadRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x11\n\tpartition\x18\x02 \x01(\r\x12\x0e\n\x06offset\x18\x03 \x01(\x04\x12\x12\n\nbatch_size\x18\x04 \x01(\r\"J\n\x0cReadResponse\x12%\n\x08messages\x18\x01 \x03(\x0b\x32\x13.minipulsar.Message\x12\x13\n\x0bnext_offset\x18\x02 \x01(\x04*\x82\x01\n\x08NodeType\x12\x19\n\x15NODE_TYPE_UNSPECIFIED\x10\x00\x12\x14\n\x10NODE_TYPE_BROKER\x10\x01\x12\x15\n\x11NODE_TYPE_STORAGE\x10\x02\x12\x16\n\x12NODE_TYPE_PRODUCER\x10\x03\x12\x16\n\x12NODE_TYPE_CONSUMER\x10\x04*V\n\x06Status\x12\x16\n\x12STATUS_UNSPECIFIED\x10\x00\x12\r\n\tSTATUS_OK\x10\x01\x12\x13\n\x0fSTATUS_REDIRECT\x10\x02\x12\x10\n\x0cSTATUS_ERROR\x10\x03\x32\xa3\x05\n\x12\x43oordinatorService\x12\x45\n\x08Register\x12\x1b.minipulsar.RegisterRequest\x1a\x1c.minipulsar.RegisterResponse\x12H\n\tHeartbeat\x12\x1c.minipulsar.HeartbeatRequest\x1a\x1d.minipulsar.HeartbeatResponse\x12N\n\x0b\x43reateTopic\x12\x1e.minipulsar.CreateTopicRequest\x1a\x1f.minipulsar.CreateTopicResponse\x12]\n\x10SubscribeMessage\x12#.minipulsar.SubscribeMessageRequest\x1a$.minipulsar.SubscribeMessageResponse\x12K\n\nListTopics\x12\x1d.minipulsar.ListTopicsRequest\x1a\x1e.minipulsar.ListTopicsResponse\x12Z\n\x0fGetRoutingTable\x12\".minipulsar.GetRoutingTableRequest\x1a#.minipulsar.GetRoutingTableResponse\x12N\n\x0bRequestVote\x12\x1e.minipulsar.RequestVoteRequest\x1a\x1f.minipulsar.RequestVoteResponse\x12T\n\rAppendEntries\x12 .minipulsar.AppendEntriesRequest\x1a!.minipulsar.AppendEntriesResponse2\xfb\x01\n\rBrokerService\x12\x42\n\x07Publish\x12\x1a.minipulsar.PublishRequest\x1a\x1b.minipulsar.PublishResponse\x12Z\n\x0f\x41ssignPartition\x12\".minipulsar.AssignPartitionRequest\x1a#.minipulsar.AssignPartitionResponse\x12J\n\tSubscribe\x12\x1c.minipulsar.SubscribeRequest\x1a\x1d.minipulsar.SubscribeResponse0\x01\x32\x8c\x01\n\x0eStorageService\x12?\n\x06\x41ppend\x12\x19.minipulsar.AppendRequest\x1a\x1a.minipulsar.AppendResponse\x12\x39\n\x04Read\x12\x17.minipulsar.ReadRequest\x1a\x18.minipulsar.ReadResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'protos.pulsar_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_NODETYPE']._serialized_start=2291
-  _globals['_NODETYPE']._serialized_end=2421
-  _globals['_STATUS']._serialized_start=2423
-  _globals['_STATUS']._serialized_end=2509
+  _globals['_NODETYPE']._serialized_start=2541
+  _globals['_NODETYPE']._serialized_end=2671
+  _globals['_STATUS']._serialized_start=2673
+  _globals['_STATUS']._serialized_end=2759
   _globals['_BROKERINFO']._serialized_start=35
   _globals['_BROKERINFO']._serialized_end=83
   _globals['_STORAGEINFO']._serialized_start=85
@@ -71,30 +71,38 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETROUTINGTABLEREQUEST']._serialized_end=1216
   _globals['_GETROUTINGTABLERESPONSE']._serialized_start=1218
   _globals['_GETROUTINGTABLERESPONSE']._serialized_end=1287
-  _globals['_PUBLISHREQUEST']._serialized_start=1289
-  _globals['_PUBLISHREQUEST']._serialized_end=1350
-  _globals['_PUBLISHRESPONSE']._serialized_start=1353
-  _globals['_PUBLISHRESPONSE']._serialized_end=1513
-  _globals['_ASSIGNPARTITIONREQUEST']._serialized_start=1516
-  _globals['_ASSIGNPARTITIONREQUEST']._serialized_end=1660
-  _globals['_ASSIGNPARTITIONRESPONSE']._serialized_start=1662
-  _globals['_ASSIGNPARTITIONRESPONSE']._serialized_end=1716
-  _globals['_SUBSCRIBEREQUEST']._serialized_start=1718
-  _globals['_SUBSCRIBEREQUEST']._serialized_end=1824
-  _globals['_SUBSCRIBERESPONSE']._serialized_start=1827
-  _globals['_SUBSCRIBERESPONSE']._serialized_end=2012
-  _globals['_APPENDREQUEST']._serialized_start=2014
-  _globals['_APPENDREQUEST']._serialized_end=2093
-  _globals['_APPENDRESPONSE']._serialized_start=2095
-  _globals['_APPENDRESPONSE']._serialized_end=2127
-  _globals['_READREQUEST']._serialized_start=2129
-  _globals['_READREQUEST']._serialized_end=2212
-  _globals['_READRESPONSE']._serialized_start=2214
-  _globals['_READRESPONSE']._serialized_end=2288
-  _globals['_COORDINATORSERVICE']._serialized_start=2512
-  _globals['_COORDINATORSERVICE']._serialized_end=3021
-  _globals['_BROKERSERVICE']._serialized_start=3024
-  _globals['_BROKERSERVICE']._serialized_end=3275
-  _globals['_STORAGESERVICE']._serialized_start=3278
-  _globals['_STORAGESERVICE']._serialized_end=3418
+  _globals['_REQUESTVOTEREQUEST']._serialized_start=1289
+  _globals['_REQUESTVOTEREQUEST']._serialized_end=1345
+  _globals['_REQUESTVOTERESPONSE']._serialized_start=1347
+  _globals['_REQUESTVOTERESPONSE']._serialized_end=1404
+  _globals['_APPENDENTRIESREQUEST']._serialized_start=1406
+  _globals['_APPENDENTRIESREQUEST']._serialized_end=1481
+  _globals['_APPENDENTRIESRESPONSE']._serialized_start=1483
+  _globals['_APPENDENTRIESRESPONSE']._serialized_end=1537
+  _globals['_PUBLISHREQUEST']._serialized_start=1539
+  _globals['_PUBLISHREQUEST']._serialized_end=1600
+  _globals['_PUBLISHRESPONSE']._serialized_start=1603
+  _globals['_PUBLISHRESPONSE']._serialized_end=1763
+  _globals['_ASSIGNPARTITIONREQUEST']._serialized_start=1766
+  _globals['_ASSIGNPARTITIONREQUEST']._serialized_end=1910
+  _globals['_ASSIGNPARTITIONRESPONSE']._serialized_start=1912
+  _globals['_ASSIGNPARTITIONRESPONSE']._serialized_end=1966
+  _globals['_SUBSCRIBEREQUEST']._serialized_start=1968
+  _globals['_SUBSCRIBEREQUEST']._serialized_end=2074
+  _globals['_SUBSCRIBERESPONSE']._serialized_start=2077
+  _globals['_SUBSCRIBERESPONSE']._serialized_end=2262
+  _globals['_APPENDREQUEST']._serialized_start=2264
+  _globals['_APPENDREQUEST']._serialized_end=2343
+  _globals['_APPENDRESPONSE']._serialized_start=2345
+  _globals['_APPENDRESPONSE']._serialized_end=2377
+  _globals['_READREQUEST']._serialized_start=2379
+  _globals['_READREQUEST']._serialized_end=2462
+  _globals['_READRESPONSE']._serialized_start=2464
+  _globals['_READRESPONSE']._serialized_end=2538
+  _globals['_COORDINATORSERVICE']._serialized_start=2762
+  _globals['_COORDINATORSERVICE']._serialized_end=3437
+  _globals['_BROKERSERVICE']._serialized_start=3440
+  _globals['_BROKERSERVICE']._serialized_end=3691
+  _globals['_STORAGESERVICE']._serialized_start=3694
+  _globals['_STORAGESERVICE']._serialized_end=3834
 # @@protoc_insertion_point(module_scope)
