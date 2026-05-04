@@ -187,10 +187,10 @@ class Broker(pulsar_pb2_grpc.BrokerServiceServicer):
         return None
 
 
-def register_with_coordinator(coordinator_addr, listen_addr):
+def register_with_coordinator(coordinator_addr, listen_addr, node_id):
     channel = grpc.insecure_channel(coordinator_addr)
     stub = pulsar_pb2_grpc.CoordinatorServiceStub(channel)
-    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_BROKER, node_id="", address=listen_addr))
+    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_BROKER, node_id=node_id, address=listen_addr))
     return stub, response.node_id
 
 
@@ -205,11 +205,11 @@ def heartbeat_loop(stub, node_id, listen_addr, interval, stop_event):
 
 def serve(args):
     listen_addr = f"{args.host}:{args.port}"
-    broker_id = "broker-local"
+    broker_id = args.id
     stub = None
     stop_event = threading.Event()
     if args.coordinator:
-        stub, broker_id = register_with_coordinator(args.coordinator, listen_addr)
+        stub, broker_id = register_with_coordinator(args.coordinator, listen_addr, broker_id)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))
     broker = Broker(broker_id, listen_addr, coordinator_stub=stub)
@@ -238,6 +238,7 @@ def main():
     parser.add_argument("--host", default="127.0.0.1", help="Bind host")
     parser.add_argument("--port", type=int, required=True, help="Bind port")
     parser.add_argument("--coordinator", required=True, help="Coordinator address host:port")
+    parser.add_argument("--id", required=True, help="Broker id")
     args = parser.parse_args()
 
     serve(args)
