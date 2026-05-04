@@ -10,13 +10,13 @@ It is recommended to run this project inside a Python virtual environment to man
 
 ```bash
 # Create the virtual environment
-python3 -m .venv .venv
+python3 -m venv .venv
 
 # Activate the virtual environment
 # On Linux/macOS:
-source venv/bin/activate
+source .venv/bin/activate
 # On Windows:
-venv\Scripts\activate
+.venv\Scripts\activate
 ```
 
 ### 2. Install Dependencies
@@ -24,7 +24,7 @@ venv\Scripts\activate
 With the virtual environment activated, install the required gRPC and Protobuf libraries:
 
 ```bash
-pip install grpcio grpcio-tools protobuf
+pip3 install -r requirements.txt
 ```
 
 ### 3. Compile Protobuf Files
