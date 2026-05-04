@@ -1,3 +1,5 @@
 venv/
-protos/pulsar_pb2.py
-protos/pulsar_pb2_grpc.py
+__pycache__/
+.venv/
+data/
+logs/
