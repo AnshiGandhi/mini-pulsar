@@ -2,36 +2,32 @@ import argparse
 import shlex
 import threading
 import time
+import json
+import os
 
 import grpc
 
 from protos import pulsar_pb2
 from protos import pulsar_pb2_grpc
-
+from coordinator_client import CoordinatorClient
 from utils import log_error, log_event, log_success, log_io
 
 
-def fetch_routes(coordinator_addr, topic):
-    channel = grpc.insecure_channel(coordinator_addr)
-    stub = pulsar_pb2_grpc.CoordinatorServiceStub(channel)
-    response = stub.SubscribeMessage(pulsar_pb2.SubscribeMessageRequest(topic_name=topic))
-    return response
+def fetch_routes(client, topic):
+    """Fetches routing table for a topic to determine which brokers hold which partitions"""
+    return client.call("SubscribeMessage", pulsar_pb2.SubscribeMessageRequest(topic_name=topic))
 
 
-def register_consumer(coordinator_addr, consumer_id):
-    channel = grpc.insecure_channel(coordinator_addr)
-    stub = pulsar_pb2_grpc.CoordinatorServiceStub(channel)
-    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_CONSUMER, node_id=consumer_id, address=""))
-    return response
+def register_consumer(client, consumer_id):
+    return client.call("Register", pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_CONSUMER, node_id=consumer_id, address=""))
 
 
-def list_topics(coordinator_addr):
-    channel = grpc.insecure_channel(coordinator_addr)
-    stub = pulsar_pb2_grpc.CoordinatorServiceStub(channel)
-    return stub.ListTopics(pulsar_pb2.ListTopicsRequest())
+def list_topics(client):
+    return client.call("ListTopics", pulsar_pb2.ListTopicsRequest())
 
 
 def group_routes_by_broker(routes):
+    """Groups partitions by their assigned broker address for efficient batched polling"""
     grouped = {}
     for route in routes:
         addr = route.broker.address
@@ -41,7 +37,11 @@ def group_routes_by_broker(routes):
     return grouped
 
 
-def consume_from_broker(broker_addr, topic, consumer_id, start_offsets, stop_event, coordinator_addr):
+def consume_from_broker(broker_addr, topic, consumer_id, start_offsets, stop_event, client):
+    """
+    Background worker that continuously polls a single broker for messages across
+    multiple partitions. Re-evaluates routing if a redirect or error occurs
+    """
 
     offsets = dict(start_offsets)
     current_partitions = list(offsets.keys())
@@ -88,7 +88,10 @@ def consume_from_broker(broker_addr, topic, consumer_id, start_offsets, stop_eve
         if stop_event.is_set():
             break
 
-        response = fetch_routes(coordinator_addr, topic)
+        response = fetch_routes(client, topic)
+        if not response:
+            time.sleep(1)
+            continue
         if response.status != pulsar_pb2.STATUS_OK:
             log_error(f"error {response.error_message}")
             time.sleep(1)
@@ -118,12 +121,13 @@ def consume_from_broker(broker_addr, topic, consumer_id, start_offsets, stop_eve
 
 def main():
     parser = argparse.ArgumentParser(description="Mini-Pulsar consumer")
-    parser.add_argument("--coordinator", required=True, help="Coordinator address host:port")
+    parser.add_argument("--coordinators-file", required=True, help="Coordinator addresses file")
     parser.add_argument("--id", required=True, help="Consumer id")
     args = parser.parse_args()
 
-    register_response = register_consumer(args.coordinator, args.id)
-    if not register_response.ok or not register_response.node_id:
+    client = CoordinatorClient(args.coordinators_file)
+    register_response = register_consumer(client, args.id)
+    if not register_response or not register_response.ok or not register_response.node_id:
         log_error("error: coordinator did not return consumer id")
         return
     consumer_id = register_response.node_id
@@ -132,6 +136,53 @@ def main():
     log_event("Commands: list_topics, list_subscriptions, subscribe_topic <topic>, unsubscribe_topic <topic>, exit")
     active_topics = set()
     topic_threads = {}
+
+    os.makedirs("logs", exist_ok=True)
+    state_file = os.path.join("logs", f"{args.id}.json")
+
+    def save_state():
+        with open(state_file, "w") as f:
+            json.dump(list(active_topics), f)
+
+    def do_subscribe(topic):
+        if topic in active_topics:
+            log_event(f"Already subscribed topic={topic}")
+            return
+        response = fetch_routes(client, topic)
+        if not response:
+            log_error("error: coordinator unreachable")
+            return
+        if response.status != pulsar_pb2.STATUS_OK:
+            log_error(f"error {response.error_message}")
+            return
+        broker_map = group_routes_by_broker(response.routes)
+        if not broker_map:
+            log_error("error: no brokers available for topic")
+            return
+
+        for broker_addr, partitions in broker_map.items():
+            start_offsets = {p: 0 for p in partitions}
+            stop_event = threading.Event()
+            thread = threading.Thread(
+                target=consume_from_broker,
+                args=(broker_addr, topic, consumer_id, start_offsets, stop_event, client),
+                daemon=True,
+            )
+            thread.start()
+            topic_threads.setdefault(topic, []).append((thread, stop_event))
+        active_topics.add(topic)
+        save_state()
+
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, "r") as f:
+                saved_topics = json.load(f)
+            log_event(f"Loaded {len(saved_topics)} subscriptions from state")
+            for t in saved_topics:
+                do_subscribe(t)
+        except Exception as e:
+            log_error(f"Failed to load state: {e}")
+
     while True:
         try:
             raw = input("> ").strip()
@@ -150,7 +201,10 @@ def main():
             break
 
         if command == "list_topics":
-            response = list_topics(args.coordinator)
+            response = list_topics(client)
+            if not response:
+                log_error("error: coordinator unreachable")
+                continue
             if response.status != pulsar_pb2.STATUS_OK:
                 log_error(f"error {response.error_message}")
                 continue
@@ -172,29 +226,7 @@ def main():
                 log_error("usage: subscribe_topic <topic>")
                 continue
             topic = parts[1]
-            if topic in active_topics:
-                log_event(f"Already subscribed topic={topic}")
-                continue
-            response = fetch_routes(args.coordinator, topic)
-            if response.status != pulsar_pb2.STATUS_OK:
-                log_error(f"error {response.error_message}")
-                continue
-            broker_map = group_routes_by_broker(response.routes)
-            if not broker_map:
-                log_error("error: no brokers available for topic")
-                continue
-
-            for broker_addr, partitions in broker_map.items():
-                start_offsets = {p: 0 for p in partitions}
-                stop_event = threading.Event()
-                thread = threading.Thread(
-                    target=consume_from_broker,
-                    args=(broker_addr, topic, consumer_id, start_offsets, stop_event, args.coordinator),
-                    daemon=True,
-                )
-                thread.start()
-                topic_threads.setdefault(topic, []).append((thread, stop_event))
-            active_topics.add(topic)
+            do_subscribe(topic)
             continue
 
         if command == "unsubscribe_topic":
@@ -210,6 +242,7 @@ def main():
                 thread.join(timeout=1)
             topic_threads.pop(topic, None)
             active_topics.discard(topic)
+            save_state()
             log_event(f"Unsubscribed topic={topic}")
             continue
 

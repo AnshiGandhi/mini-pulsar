@@ -39,36 +39,46 @@ python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./protos/pul
 
 ## Run Order (Multi-Process)
 
+Before running the cluster, create a `coordinators.txt` file containing the addresses of your coordinator nodes (one per line). For a local multi-node setup:
+
+```text
+127.0.0.1:4000
+127.0.0.1:4001
+127.0.0.1:4002
+```
+
 Open separate terminals for each component and run in this order:
 
-1. Coordinator
+1. Coordinator Cluster (Start multiple instances for Raft leader election)
 
     ```bash
-    python3 coordinator.py
+    python3 coordinator.py --port 4000 --coordinators-file coordinators.txt
+    python3 coordinator.py --port 4001 --coordinators-file coordinators.txt
+    python3 coordinator.py --port 4002 --coordinators-file coordinators.txt
     ```
 
 2. Storage
 
     ```bash
-    python3 storage.py --coordinator 127.0.0.1:4000 --port 6000 --data-dir data/storage --id storage-1
+    python3 storage.py --coordinators-file coordinators.txt --port 6000 --data-dir data/storage --id storage-1
     ```
 
 3. Broker
 
     ```bash
-    python3 broker.py --coordinator 127.0.0.1:4000 --port 8000 --id broker-1
+    python3 broker.py --coordinators-file coordinators.txt --port 8000 --id broker-1
     ```
 
 4. Producer (interactive)
 
     ```bash
-    python3 producer.py --coordinator 127.0.0.1:4000
+    python3 producer.py --coordinators-file coordinators.txt
     ```
 
 5. Consumer (interactive)
 
     ```bash
-    python3 consumer.py --coordinator 127.0.0.1:4000 --id consumer-1
+    python3 consumer.py --coordinators-file coordinators.txt --id consumer-1
     ```
 
 ### Producer Commands

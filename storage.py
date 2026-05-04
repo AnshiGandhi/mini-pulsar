@@ -9,10 +9,15 @@ from concurrent import futures
 import grpc
 
 from protos import pulsar_pb2, pulsar_pb2_grpc
-from utils import log_event, log_success
+from utils import log_event, log_success, log_error
+from coordinator_client import CoordinatorClient
 
 
 class StorageNode(pulsar_pb2_grpc.StorageServiceServicer):
+    """
+    Storage node manages persistent message storage on disk
+    Each topic partition is stored as an append-only JSON lines file
+    """
     def __init__(self, data_dir):
         self._data_dir = data_dir
         self._locks = {}
@@ -20,6 +25,7 @@ class StorageNode(pulsar_pb2_grpc.StorageServiceServicer):
         self._global_lock = threading.Lock()
 
     def Append(self, request, context):
+        """Appends a new message to the partition's log file"""
         topic = request.topic
         partition = request.partition
         key = request.key
@@ -50,6 +56,7 @@ class StorageNode(pulsar_pb2_grpc.StorageServiceServicer):
         return pulsar_pb2.AppendResponse(offset=offset)
 
     def Read(self, request, context):
+        """Reads a batch of messages starting from a specific offset"""
         topic = request.topic
         partition = request.partition
         offset = request.offset
@@ -111,11 +118,12 @@ class StorageNode(pulsar_pb2_grpc.StorageServiceServicer):
         return count
 
 
-def register_with_coordinator(coordinator_addr, listen_addr, node_id):
-    channel = grpc.insecure_channel(coordinator_addr)
-    stub = pulsar_pb2_grpc.CoordinatorServiceStub(channel)
-    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_STORAGE, node_id=node_id, address=listen_addr))
-    log_success(f"Registered storage_id={response.node_id} coordinator={coordinator_addr}")
+def register_with_coordinator(client, listen_addr, node_id):
+    response = client.call("Register", pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_STORAGE, node_id=node_id, address=listen_addr))
+    if response:
+        log_success(f"Registered storage_id={response.node_id}")
+    else:
+        log_error("Failed to register storage")
 
 
 def serve(args):
@@ -127,8 +135,9 @@ def serve(args):
     listen_addr = f"{args.host}:{args.port}"
     server.add_insecure_port(listen_addr)
 
-    if args.coordinator:
-        register_with_coordinator(args.coordinator, listen_addr, args.id)
+    if args.coordinators_file:
+        client = CoordinatorClient(args.coordinators_file)
+        register_with_coordinator(client, listen_addr, args.id)
 
     server.start()
     log_success(f"Storage listening on {listen_addr}")
@@ -145,7 +154,7 @@ def main():
     parser.add_argument("--host", default="127.0.0.1", help="Bind host")
     parser.add_argument("--port", type=int, required=True, help="Bind port")
     parser.add_argument("--data-dir", required=True, help="Storage data directory")
-    parser.add_argument("--coordinator", required=True, help="Coordinator address host:port")
+    parser.add_argument("--coordinators-file", required=True, help="Coordinator addresses file")
     parser.add_argument("--id", required=True, help="Storage id")
     args = parser.parse_args()
 

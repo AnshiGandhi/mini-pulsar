@@ -65,6 +65,16 @@ class CoordinatorServiceStub(object):
                 request_serializer=protos_dot_pulsar__pb2.GetRoutingTableRequest.SerializeToString,
                 response_deserializer=protos_dot_pulsar__pb2.GetRoutingTableResponse.FromString,
                 _registered_method=True)
+        self.RequestVote = channel.unary_unary(
+                '/minipulsar.CoordinatorService/RequestVote',
+                request_serializer=protos_dot_pulsar__pb2.RequestVoteRequest.SerializeToString,
+                response_deserializer=protos_dot_pulsar__pb2.RequestVoteResponse.FromString,
+                _registered_method=True)
+        self.AppendEntries = channel.unary_unary(
+                '/minipulsar.CoordinatorService/AppendEntries',
+                request_serializer=protos_dot_pulsar__pb2.AppendEntriesRequest.SerializeToString,
+                response_deserializer=protos_dot_pulsar__pb2.AppendEntriesResponse.FromString,
+                _registered_method=True)
 
 
 class CoordinatorServiceServicer(object):
@@ -107,6 +117,18 @@ class CoordinatorServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def RequestVote(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def AppendEntries(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_CoordinatorServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -139,6 +161,16 @@ def add_CoordinatorServiceServicer_to_server(servicer, server):
                     servicer.GetRoutingTable,
                     request_deserializer=protos_dot_pulsar__pb2.GetRoutingTableRequest.FromString,
                     response_serializer=protos_dot_pulsar__pb2.GetRoutingTableResponse.SerializeToString,
+            ),
+            'RequestVote': grpc.unary_unary_rpc_method_handler(
+                    servicer.RequestVote,
+                    request_deserializer=protos_dot_pulsar__pb2.RequestVoteRequest.FromString,
+                    response_serializer=protos_dot_pulsar__pb2.RequestVoteResponse.SerializeToString,
+            ),
+            'AppendEntries': grpc.unary_unary_rpc_method_handler(
+                    servicer.AppendEntries,
+                    request_deserializer=protos_dot_pulsar__pb2.AppendEntriesRequest.FromString,
+                    response_serializer=protos_dot_pulsar__pb2.AppendEntriesResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -304,6 +336,60 @@ class CoordinatorService(object):
             '/minipulsar.CoordinatorService/GetRoutingTable',
             protos_dot_pulsar__pb2.GetRoutingTableRequest.SerializeToString,
             protos_dot_pulsar__pb2.GetRoutingTableResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RequestVote(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/minipulsar.CoordinatorService/RequestVote',
+            protos_dot_pulsar__pb2.RequestVoteRequest.SerializeToString,
+            protos_dot_pulsar__pb2.RequestVoteResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def AppendEntries(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/minipulsar.CoordinatorService/AppendEntries',
+            protos_dot_pulsar__pb2.AppendEntriesRequest.SerializeToString,
+            protos_dot_pulsar__pb2.AppendEntriesResponse.FromString,
             options,
             channel_credentials,
             insecure,
