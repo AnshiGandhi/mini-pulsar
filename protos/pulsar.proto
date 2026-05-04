@@ -1,139 +1,195 @@
 syntax = "proto3";
 
-package pulsar;
+package minipulsar;
 
-// ---------------------------------------------------------
-// 1. Client <-> Broker Service
-// ---------------------------------------------------------
-service ClientBrokerService {
-    // Producer publishes a message to a topic
-    rpc Publish (PublishRequest) returns (PublishResponse);
-    
-    // Consumer subscribes to a topic and receives a stream of messages
-    rpc Subscribe (SubscribeRequest) returns (stream MessageDelivery);
-    
-    // Consumer acknowledges receipt of a message (for durable cursors)
-    rpc Acknowledge (AckRequest) returns (AckResponse);
+// Common types
+enum NodeType {
+	NODE_TYPE_UNSPECIFIED = 0;
+	NODE_TYPE_BROKER = 1;
+	NODE_TYPE_STORAGE = 2;
+	NODE_TYPE_PRODUCER = 3;
+	NODE_TYPE_CONSUMER = 4;
 }
 
-message PublishRequest {
-    string topic = 1;
-    bytes payload = 2;
+enum Status {
+	STATUS_UNSPECIFIED = 0;
+	STATUS_OK = 1;
+	STATUS_REDIRECT = 2;
+	STATUS_ERROR = 3;
 }
 
-message PublishResponse {
-    bool success = 1;
-    string message = 2;
+message BrokerInfo {
+	string broker_id = 1;
+	string address = 2;
 }
 
-message SubscribeRequest {
-    string topic = 1;
-    string consumer_id = 2;
+message StorageInfo {
+	string storage_id = 1;
+	string address = 2;
 }
 
-message MessageDelivery {
-    string message_id = 1;
-    bytes payload = 2;
+message PartitionRoute {
+	string topic = 1;
+	uint32 partition = 2;
+	BrokerInfo broker = 3;
+	StorageInfo storage = 4;
 }
 
-message AckRequest {
-    string topic = 1;
-    string consumer_id = 2;
-    string message_id = 3;
+message PartitionOffset {
+	uint32 partition = 1;
+	uint64 offset = 2;
 }
 
-message AckResponse {
-    bool success = 1;
+message Message {
+	string topic = 1;
+	uint32 partition = 2;
+	uint64 offset = 3;
+	string key = 4;
+	bytes payload = 5;
 }
 
-// ---------------------------------------------------------
-// 2. Broker <-> Storage Service
-// ---------------------------------------------------------
-service BrokerStorageService {
-    // Broker appends a message to the storage log
-    rpc AppendMessage (AppendRequest) returns (AppendResponse);
-    
-    // Broker reads messages from the storage log (e.g., for catching up a consumer)
-    rpc ReadMessages (ReadRequest) returns (ReadResponse);
-
-    // Broker updates the consumer cursor in storage
-    rpc UpdateCursor (UpdateCursorRequest) returns (UpdateCursorResponse);
+message MessageBatch {
+	repeated Message messages = 1;
 }
 
-message AppendRequest {
-    string topic = 1;
-    bytes payload = 2;
-}
-
-message AppendResponse {
-    bool success = 1;
-    string message_id = 2; // Returns the generated offset/ID
-}
-
-message ReadRequest {
-    string topic = 1;
-    string start_message_id = 2; // Offset to start reading from
-    int32 max_messages = 3;
-}
-
-message ReadResponse {
-    repeated MessageDelivery messages = 1;
-}
-
-message UpdateCursorRequest {
-    string topic = 1;
-    string consumer_id = 2;
-    string message_id = 3; // The latest acknowledged message offset
-}
-
-message UpdateCursorResponse {
-    bool success = 1;
-}
-
-// ---------------------------------------------------------
-// 3. Broker/Client <-> Coordinator Service
-// ---------------------------------------------------------
+// Coordinator service
 service CoordinatorService {
-    // Clients/Brokers ask the coordinator which broker handles a topic
-    rpc DiscoverTopic (DiscoverRequest) returns (DiscoverResponse);
-    
-    // Brokers send heartbeats to the coordinator
-    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+	rpc Register(RegisterRequest) returns (RegisterResponse);
+	rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+	rpc CreateTopic(CreateTopicRequest) returns (CreateTopicResponse);
+	rpc SubscribeMessage(SubscribeMessageRequest) returns (SubscribeMessageResponse);
+	rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+	rpc GetRoutingTable(GetRoutingTableRequest) returns (GetRoutingTableResponse);
 }
 
-message DiscoverRequest {
-    string topic = 1;
+message RegisterRequest {
+	NodeType node_type = 1;
+	string node_id = 2;
+	string address = 3;
 }
 
-message DiscoverResponse {
-    string broker_address = 1; // e.g., "localhost:50051"
+message RegisterResponse {
+	bool ok = 1;
+	string message = 2;
+	string node_id = 3;
 }
 
 message HeartbeatRequest {
-    string broker_id = 1;
-    string address = 2;
-    int32 load = 3; // Number of topics currently handled
+	string broker_id = 1;
+	string address = 2;
 }
 
 message HeartbeatResponse {
-    bool success = 1;
+	bool ok = 1;
+	string message = 2;
 }
 
-// ---------------------------------------------------------
-// 4. Coordinator Consensus Service (Phase King)
-// ---------------------------------------------------------
-service ConsensusService {
-    // Used between Coordinator nodes for Phase King rounds
-    rpc ProposeValue (ProposeRequest) returns (ProposeResponse);
+message CreateTopicRequest {
+	string topic_name = 1;
 }
 
-message ProposeRequest {
-    int32 round = 1;
-    int32 phase = 2;
-    string proposed_state = 3; // Serialized state or specific value
-    string sender_id = 4;
+message CreateTopicResponse {
+	BrokerInfo default_broker = 1;
+	repeated PartitionRoute routes = 2;
 }
 
-message ProposeResponse {
-    bool success = 1;
+message SubscribeMessageRequest {
+	string topic_name = 1;
+}
+
+message SubscribeMessageResponse {
+	Status status = 1;
+	string error_message = 2;
+	repeated PartitionRoute routes = 3;
+}
+
+message ListTopicsRequest {}
+
+message ListTopicsResponse {
+	Status status = 1;
+	string error_message = 2;
+	repeated string topics = 3;
+}
+
+message GetRoutingTableRequest {}
+
+message GetRoutingTableResponse {
+	repeated PartitionRoute routes = 1;
+}
+
+// Broker service
+service BrokerService {
+	rpc Publish(PublishRequest) returns (PublishResponse);
+	rpc AssignPartition(AssignPartitionRequest) returns (AssignPartitionResponse);
+	rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse);
+}
+
+message PublishRequest {
+	string topic = 1;
+	string key = 2;
+	bytes payload = 3;
+}
+
+message PublishResponse {
+	Status status = 1;
+	uint32 partition = 2;
+	uint64 offset = 3;
+	BrokerInfo redirect_broker = 4;
+	string error_message = 5;
+}
+
+message AssignPartitionRequest {
+	string topic = 1;
+	uint32 partition = 2;
+	StorageInfo storage = 3;
+	repeated PartitionRoute routes = 4;
+}
+
+message AssignPartitionResponse {
+	bool ok = 1;
+	string message = 2;
+}
+
+message SubscribeRequest {
+	string topic = 1;
+	string consumer_id = 2;
+	repeated PartitionOffset start_offsets = 3;
+}
+
+message SubscribeResponse {
+	Status status = 1;
+	oneof payload {
+		MessageBatch batch = 2;
+		BrokerInfo redirect_broker = 3;
+		string error_message = 4;
+	}
+}
+
+// Storage service
+service StorageService {
+	rpc Append(AppendRequest) returns (AppendResponse);
+	rpc Read(ReadRequest) returns (ReadResponse);
+}
+
+message AppendRequest {
+	string topic = 1;
+	uint32 partition = 2;
+	string key = 3;
+	bytes payload = 4;
+}
+
+message AppendResponse {
+	uint64 offset = 1;
+}
+
+message ReadRequest {
+	string topic = 1;
+	uint32 partition = 2;
+	uint64 offset = 3;
+	uint32 batch_size = 4;
+}
+
+message ReadResponse {
+	repeated Message messages = 1;
+	uint64 next_offset = 2;
 }
