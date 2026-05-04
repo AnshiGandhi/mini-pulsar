@@ -2,7 +2,6 @@ import argparse
 import threading
 import time
 from concurrent import futures
-from unittest.mock import DEFAULT
 
 import grpc
 
@@ -21,12 +20,14 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
         self._topic_partitions = {}
         self._broker_stubs = {}
         self._heartbeats = {}
-        self._broker_seq = 0
-        self._storage_seq = 0
 
     def Register(self, request, context):
         with self._lock:
-            node_id = self._assign_node_id(request.node_type, request.node_id)
+            if not request.node_id:
+                log_error("Register missing node_id")
+                return pulsar_pb2.RegisterResponse(ok=False, message="missing node_id", node_id="")
+
+            node_id = request.node_id
             if request.node_type == pulsar_pb2.NODE_TYPE_BROKER:
                 self._brokers[node_id] = request.address
                 self._heartbeats[node_id] = {
@@ -125,17 +126,6 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
 
     def _sorted_nodes(self, nodes):
         return sorted(nodes.items(), key=lambda item: item[0])
-
-    def _assign_node_id(self, node_type, requested_id):
-        if requested_id:
-            return requested_id
-        if node_type == pulsar_pb2.NODE_TYPE_BROKER:
-            self._broker_seq += 1
-            return f"broker-{self._broker_seq}"
-        if node_type == pulsar_pb2.NODE_TYPE_STORAGE:
-            self._storage_seq += 1
-            return f"storage-{self._storage_seq}"
-        return "node-unknown"
 
     def _notify_brokers(self, routes):
         for broker_id, broker_addr in self._brokers.items():

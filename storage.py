@@ -111,10 +111,10 @@ class StorageNode(pulsar_pb2_grpc.StorageServiceServicer):
         return count
 
 
-def register_with_coordinator(coordinator_addr, listen_addr):
+def register_with_coordinator(coordinator_addr, listen_addr, node_id):
     channel = grpc.insecure_channel(coordinator_addr)
     stub = pulsar_pb2_grpc.CoordinatorServiceStub(channel)
-    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_STORAGE, node_id="", address=listen_addr))
+    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_STORAGE, node_id=node_id, address=listen_addr))
     log_success(f"Registered storage_id={response.node_id} coordinator={coordinator_addr}")
 
 
@@ -128,7 +128,7 @@ def serve(args):
     server.add_insecure_port(listen_addr)
 
     if args.coordinator:
-        register_with_coordinator(args.coordinator, listen_addr)
+        register_with_coordinator(args.coordinator, listen_addr, args.id)
 
     server.start()
     log_success(f"Storage listening on {listen_addr}")
@@ -146,6 +146,7 @@ def main():
     parser.add_argument("--port", type=int, required=True, help="Bind port")
     parser.add_argument("--data-dir", required=True, help="Storage data directory")
     parser.add_argument("--coordinator", required=True, help="Coordinator address host:port")
+    parser.add_argument("--id", required=True, help="Storage id")
     args = parser.parse_args()
 
     serve(args)

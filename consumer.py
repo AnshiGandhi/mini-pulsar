@@ -18,10 +18,10 @@ def fetch_routes(coordinator_addr, topic):
     return response
 
 
-def register_consumer(coordinator_addr):
+def register_consumer(coordinator_addr, consumer_id):
     channel = grpc.insecure_channel(coordinator_addr)
     stub = pulsar_pb2_grpc.CoordinatorServiceStub(channel)
-    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_CONSUMER, node_id="", address=""))
+    response = stub.Register(pulsar_pb2.RegisterRequest(node_type=pulsar_pb2.NODE_TYPE_CONSUMER, node_id=consumer_id, address=""))
     return response
 
 
@@ -119,18 +119,17 @@ def consume_from_broker(broker_addr, topic, consumer_id, start_offsets, stop_eve
 def main():
     parser = argparse.ArgumentParser(description="Mini-Pulsar consumer")
     parser.add_argument("--coordinator", required=True, help="Coordinator address host:port")
+    parser.add_argument("--id", required=True, help="Consumer id")
     args = parser.parse_args()
 
-    register_response = register_consumer(args.coordinator)
+    register_response = register_consumer(args.coordinator, args.id)
     if not register_response.ok or not register_response.node_id:
         log_error("error: coordinator did not return consumer id")
         return
     consumer_id = register_response.node_id
     log_success(f"Consumer registered id={consumer_id}")
 
-    log_event(
-        "Commands: list_topics, list_subscriptions, subscribe_topic <topic>, unsubscribe_topic <topic>, exit"
-    )
+    log_event("Commands: list_topics, list_subscriptions, subscribe_topic <topic>, unsubscribe_topic <topic>, exit")
     active_topics = set()
     topic_threads = {}
     while True:

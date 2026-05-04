@@ -53,9 +53,7 @@ def main():
 
     topic_brokers = {}
 
-    log_event(
-        "Commands: list_topics, create_topic <topic>, send_message <topic> <message> <key>, exit"
-    )
+    log_event("Commands: list_topics, create_topic <topic>, send_message <topic> <message> <key>, exit")
     while True:
         try:
             raw = input("> ").strip()
