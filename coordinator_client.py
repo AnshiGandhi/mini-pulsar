@@ -25,7 +25,7 @@ class CoordinatorClient:
         else:
             self.current_index = (self.current_index + 1) % max(1, len(self.coordinators))
 
-    def call(self, method_name, request):
+    def call(self, method_name, request, timeout=1.0):
         """
         Invokes a gRPC method on the active coordinator
         If a NOT_LEADER error is caught, it retries against the hinted leader or the next node
@@ -39,7 +39,7 @@ class CoordinatorClient:
                 return None
             try:
                 method = getattr(stub, method_name)
-                return method(request)
+                return method(request, timeout=timeout)
             except grpc.RpcError as exc:
                 if exc.code() == grpc.StatusCode.UNAVAILABLE and "NOT_LEADER:" in exc.details():
                     hint = exc.details().split("NOT_LEADER:")[1].strip()

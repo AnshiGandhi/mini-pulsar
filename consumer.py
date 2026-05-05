@@ -137,8 +137,8 @@ def main():
     active_topics = set()
     topic_threads = {}
 
-    os.makedirs("logs", exist_ok=True)
-    state_file = os.path.join("logs", f"{args.id}.json")
+    os.makedirs("state", exist_ok=True)
+    state_file = os.path.join("state", f"{args.id}.json")
 
     def save_state():
         with open(state_file, "w") as f:

@@ -199,7 +199,11 @@ def heartbeat_loop(client, node_id, listen_addr, interval, stop_event):
     while not stop_event.is_set():
         response = client.call("Heartbeat", pulsar_pb2.HeartbeatRequest(broker_id=node_id, address=listen_addr))
         if not response:
-            log_error("Heartbeat failed")
+            if client and client.coordinators:
+                target = client.coordinators[client.current_index]
+                log_error(f"Heartbeat failed coordinator={target}")
+            else:
+                log_error("Heartbeat failed")
         stop_event.wait(interval)
 
 
