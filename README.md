@@ -60,7 +60,7 @@ Open separate terminals for each component and run in this order:
 2. Storage
 
     ```bash
-    python3 storage.py --coordinators-file coordinators.txt --port 6000 --data-dir data/storage --id storage-1
+    python3 storage.py --coordinators-file coordinators.txt --port 6000 --data-dir data/storage-1 --id storage-1
     ```
 
 3. Broker
@@ -72,7 +72,7 @@ Open separate terminals for each component and run in this order:
 4. Producer (interactive)
 
     ```bash
-    python3 producer.py --coordinators-file coordinators.txt
+    python3 producer.py --coordinators-file coordinators.txt --id producer-1
     ```
 
 5. Consumer (interactive)

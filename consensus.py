@@ -21,7 +21,7 @@ class ConsensusNode:
     def __init__(self, node_id, listen_addr, peers, state_delegate):
         self.node_id = node_id
         self.listen_addr = listen_addr
-        self.peers = peers
+        self.peers = [peer for peer in peers if peer != listen_addr]
         self.state_delegate = state_delegate  
         
         # Initial state is always FOLLOWER on startup
@@ -108,6 +108,10 @@ class ConsensusNode:
     def _election_loop(self):
         while self.running:
             time.sleep(0.1)
+            peers = None
+            current_term = None
+            candidate_id = None
+            send_state = False
             with self.lock:
                 if self.state == LEADER:
                     continue
@@ -122,6 +126,9 @@ class ConsensusNode:
                     candidate_id = self.listen_addr
                     peers = list(self.peers)
                     log_event(f"Starting election for term {current_term}")
+
+            if peers is None:
+                continue
             
             if not peers:
                 with self.lock:
@@ -129,7 +136,9 @@ class ConsensusNode:
                         self.state = LEADER
                         self.leader_id = self.listen_addr
                         log_success(f"Became leader for term {current_term}")
-                        self._send_heartbeats(include_state=True)
+                        send_state = True
+                if send_state:
+                    self._send_heartbeats(include_state=True)
                 continue
 
             votes = 1
@@ -162,8 +171,10 @@ class ConsensusNode:
                                     self.state = LEADER
                                     self.leader_id = self.listen_addr
                                     log_success(f"Became leader for term {current_term} with {votes} votes")
-                                    self._send_heartbeats(include_state=True)
+                                    send_state = True
                                     break
+            if send_state:
+                self._send_heartbeats(include_state=True)
 
     def _send_heartbeats(self, include_state=False):
         with self.lock:
@@ -196,9 +207,11 @@ class ConsensusNode:
     def _leader_heartbeat_loop(self):
         while self.running:
             time.sleep(0.5)
+            is_leader = False
             with self.lock:
-                if self.state == LEADER:
-                    self._send_heartbeats()
+                is_leader = self.state == LEADER
+            if is_leader:
+                self._send_heartbeats()
 
     def send_heartbeats_with_state(self):
         self._send_heartbeats(include_state=True)

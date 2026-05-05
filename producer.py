@@ -60,8 +60,8 @@ def main():
 
     client = CoordinatorClient(args.coordinators_file)
 
-    os.makedirs("logs", exist_ok=True)
-    state_file = os.path.join("logs", f"{args.id}.json")
+    os.makedirs("state", exist_ok=True)
+    state_file = os.path.join("state", f"{args.id}.json")
     topic_brokers = {}
     if os.path.exists(state_file):
         try:

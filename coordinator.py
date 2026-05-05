@@ -149,6 +149,7 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
 
     def Register(self, request, context):
         """Registers a new broker or storage node in the cluster"""
+        do_broadcast = False
         with self.lock:
             self.consensus.check_leader(context)
             if not request.node_id:
@@ -164,9 +165,13 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
                 log_success(f"Storage registered id={node_id} addr={request.address}")
             
             self.save_state()
-            return pulsar_pb2.RegisterResponse(ok=True, message="registered", node_id=node_id)
+            do_broadcast = True
+        if do_broadcast:
+            self.consensus.send_heartbeats_with_state()
+        return pulsar_pb2.RegisterResponse(ok=True, message="registered", node_id=node_id)
 
     def Heartbeat(self, request, context):
+        do_broadcast = False
         with self.lock:
             self.consensus.check_leader(context)
             if request.broker_id:
@@ -179,6 +184,9 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
                 heartbeat["last_seen"] = time.time()
                 heartbeat["missed"] = 0
             self.save_state()
+            do_broadcast = True
+        if do_broadcast:
+            self.consensus.send_heartbeats_with_state()
         return pulsar_pb2.HeartbeatResponse(ok=True, message="ok")
 
     def CreateTopic(self, request, context):
@@ -217,11 +225,13 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
             all_routes = list(self._routes.values())
 
         self._notify_brokers(all_routes)
+        self.consensus.send_heartbeats_with_state()
         log_success(f"Topic={topic} created partitions={num_partitions}")
         return pulsar_pb2.CreateTopicResponse(default_broker=default_broker, routes=new_routes)
 
     def SubscribeMessage(self, request, context):
         with self.lock:
+            self.consensus.check_leader(context)
             routes = self._routes_for_topic(request.topic_name)
         if not routes:
             return pulsar_pb2.SubscribeMessageResponse(status=pulsar_pb2.STATUS_ERROR, error_message="Topic not found", routes=[])
@@ -229,11 +239,13 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
 
     def ListTopics(self, request, context):
         with self.lock:
+            self.consensus.check_leader(context)
             topics = sorted(self._topic_partitions.keys())
         return pulsar_pb2.ListTopicsResponse(status=pulsar_pb2.STATUS_OK, error_message="", topics=topics)
 
     def GetRoutingTable(self, request, context):
         with self.lock:
+            self.consensus.check_leader(context)
             routes = list(self._routes.values())
         return pulsar_pb2.GetRoutingTableResponse(routes=routes)
 
@@ -267,6 +279,7 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
             time.sleep(interval)
             failed = []
             now = time.time()
+            notify_routes = None
             with self.lock:
                 if not self.consensus.is_leader():
                     continue
@@ -285,18 +298,20 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
                     log_error(f"broker failed id={broker_id}")
 
                 if failed:
-                    self._reassign_partitions(failed)
+                    notify_routes = self._reassign_partitions(failed)
                     self.save_state()
-                    self.consensus.send_heartbeats_with_state()
+            if notify_routes is not None:
+                self._notify_brokers(notify_routes)
+                self.consensus.send_heartbeats_with_state()
 
     def _reassign_partitions(self, failed_brokers):
         if not self._brokers:
-            return
+            return []
 
         broker_list = sorted(self._brokers.items())
         broker_count = len(broker_list)
         if broker_count == 0:
-            return
+            return []
 
         idx = 0
         for key, route in list(self._routes.items()):
@@ -308,8 +323,7 @@ class Coordinator(pulsar_pb2_grpc.CoordinatorServiceServicer):
                 self._routes[key] = route
                 log_event(f"Reassigned topic={route.topic} partition={route.partition} broker={broker_id}")
 
-        all_routes = list(self._routes.values())
-        self._notify_brokers(all_routes)
+        return list(self._routes.values())
 
 def serve(args):
     peers = read_coordinators(args.coordinators_file)
